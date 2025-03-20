@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guess the Flag Game</title>
+    <link rel="stylesheet" href="flag.css">
+</head>
+<body>
+
+    <div class="main">
+        <div class="container">
+            <h1>🌍 Flag-Guessr 🎌</h1>
+
+            <div id="mode-selection">
+                <h2>Select Mode</h2>
+                <button class="mode-btn" data-mode="easy">🐣 Easy (15s)</button>
+                <button class="mode-btn" data-mode="medium">⚡ Medium (10s)</button>
+                <button class="mode-btn" data-mode="hard">🔥 Hard (5s)</button>
+            </div>
+
+            <div id="game-container" style="display: none;">
+                <h2 id="question-counter">Question 1/10</h2>
+                <p id="timer">⏳ Time Left: <span id="time-left">10</span>s</p>
+
+                <div class="flag-container">
+                    <div class="flag-frame">
+                        <img id="flag-img" src="" alt="Flag Image">
+                    </div>
+                </div>
+                
+                <input type="text" id="guess-input" placeholder="Enter country name...">
+                <button id="submit-btn">✅ Submit</button>
+                <p id="result"></p>
+            </div>
+
+            <div id="leaderboard" style="display: none;">
+                <h2>🏆 Leaderboard</h2>
+                <ul id="score-list"></ul>
+                <button id="restart-btn">🔄 Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="flag.js"></script>
+</body>
+</html>
