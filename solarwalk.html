@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar System Simulation</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: rgba(124, 24, 24, 0); }
+    </style>
+</head>
+<body>
+    <script type="module">
+      import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+
+// Scene Setup
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// Light Source
+const light = new THREE.PointLight(0xffffff, 2, 100);
+scene.add(light);
+
+// Sun
+const sunGeometry = new THREE.SphereGeometry(5, 32, 32);
+const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
+const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+scene.add(sun);
+
+// Planet Data
+const planets = [
+    { name: 'Mercury', radius: 0.5, distance: 10, color: 0xaaaaaa, speed: 0.02 },
+    { name: 'Venus', radius: 0.9, distance: 15, color: 0xffa500, speed: 0.015 },
+    { name: 'Earth', radius: 1, distance: 20, color: 0x0000ff, speed: 0.01 },
+    { name: 'Mars', radius: 0.7, distance: 25, color: 0xff0000, speed: 0.008 },
+];
+
+const planetMeshes = [];
+
+// Create Planets
+planets.forEach(planet => {
+    const geometry = new THREE.SphereGeometry(planet.radius, 32, 32);
+    const material = new THREE.MeshStandardMaterial({ color: planet.color });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(planet.distance, 0, 0);
+    scene.add(mesh);
+    planetMeshes.push({ mesh, speed: planet.speed, distance: planet.distance });
+});
+
+// Camera Position
+camera.position.set(0, 15, 50);
+
+// Controls
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+// Animation Loop
+function animate() {
+    requestAnimationFrame(animate);
+    
+    // Rotate planets around the sun
+    planetMeshes.forEach((obj, index) => {
+        const angle = Date.now() * 0.0001 * obj.speed;
+        obj.mesh.position.x = Math.cos(angle) * obj.distance;
+        obj.mesh.position.z = Math.sin(angle) * obj.distance;
+    });
+    
+    controls.update();
+    renderer.render(scene, camera);
+}
+animate();
+
+// Resize Handler
+window.addEventListener('resize', () => {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+});
+
+    </script>
+</body>
+</html>

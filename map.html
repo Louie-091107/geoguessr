@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive World Map Quiz</title>
+    <style>
+      body { margin: 0; overflow: hidden; background: rgb(0, 17, 255); font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        #world-map-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        
+        #earth-overlay {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: url('https://upload.wikimedia.org/wikipedia/commons/4/4a/World_map_with_four_colours.svg');
+            background-size: cover;
+            opacity: 2;
+            z-index: 1;
+        }
+
+        svg {
+            max-width: 100%;
+            max-height: 100%;
+            cursor: grab;
+            position: relative;
+        }
+
+        .country { fill: rgb(255, 255, 255); stroke: rgb(0, 0, 0); cursor: pointer; transition: fill 0.3s; }
+        .country:hover { fill: rgb(0, 169, 23); }
+        
+        #quiz { position: absolute; top: 20px; left: 20px; background: white; padding: 15px; border-radius: 10px; }
+        #result { font-weight: bold; }
+        #tooltip {
+            position: absolute;
+            background: white;
+            padding: 5px;
+            border-radius: 5px;
+            font-size: 14px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+     <div id="world-map-container">
+        <div id="earth-overlay"></div>
+    </div>
+    <!-- Quiz UI -->
+    <div id="quiz">
+        <p>Find the Country: <span id="question"></span></p>
+        <p id="result"></p>
+    </div>
+
+    <script>
+
+        
+        // List of country names mapped to their standard SVG identifiers (ISO 3166 codes)
+        const countryMap = {
+            
+ "AF": "Afghanistan", 
+  "AL": "Albania", 
+  "DZ": "Algeria", 
+  "AI": "Anguilla", 
+  "AM": "Armenia", 
+  "AW": "Aruba", 
+  "AT": "Austria", 
+  "BH": "Bahrain", 
+  "BD": "Bangladesh", 
+  "BB": "Barbados", 
+  "BY": "Belarus", 
+  "BE": "Belgium", 
+  "BZ": "Belize", 
+  "BJ": "Benin", 
+  "BM": "Bermuda", 
+  "BT": "Bhutan", 
+  "BO": "Bolivia", 
+  "BA": "Bosnia and Herzegovina", 
+  "BW": "Botswana", 
+  "BR": "Brazil", 
+  "VG": "British Virgin Islands", 
+  "BN": "Brunei Darussalam", 
+  "BG": "Bulgaria", 
+  "BF": "Burkina Faso", 
+  "BI": "Burundi", 
+  "KH": "Cambodia", 
+  "CM": "Cameroon", 
+  "CF": "Central African Republic", 
+  "TD": "Chad", 
+  "CO": "Colombia", 
+  "CR": "Costa Rica", 
+  "HR": "Croatia", 
+  "CU": "Cuba", 
+  "CW": "Curaçao", 
+  "CZ": "Czech Republic", 
+  "CI": "Côte d'Ivoire", 
+  "KP": "Dem. Rep. Korea", 
+  "CD": "Democratic Republic of the Congo", 
+  "DJ": "Djibouti", 
+  "DM": "Dominica", 
+  "DO": "Dominican Republic", 
+  "EC": "Ecuador", 
+  "EG": "Egypt", 
+  "SV": "El Salvador", 
+  "GQ": "Equatorial Guinea", 
+  "ER": "Eritrea", 
+  "EE": "Estonia", 
+  "ET": "Ethiopia", 
+  "FI": "Finland", 
+  "GF": "French Guiana", 
+  "GA": "Gabon", 
+  "GE": "Georgia", 
+  "DE": "Germany", 
+  "GH": "Ghana", 
+  "GL": "Greenland", 
+  "GD": "Grenada", 
+  "GU": "Guam", 
+  "GT": "Guatemala", 
+  "GN": "Guinea", 
+  "GW": "Guinea-Bissau", 
+  "GY": "Guyana", 
+  "HT": "Haiti", 
+  "HN": "Honduras", 
+  "HU": "Hungary", 
+  "IS": "Iceland", 
+  "IN": "India", 
+  "IR": "Iran", 
+  "IQ": "Iraq", 
+  "IE": "Ireland", 
+  "IL": "Israel", 
+  "JM": "Jamaica", 
+  "JO": "Jordan", 
+  "KZ": "Kazakhstan", 
+  "KE": "Kenya", 
+  "XK": "Kosovo", 
+  "KW": "Kuwait", 
+  "KG": "Kyrgyzstan", 
+  "LA": "Lao PDR", 
+  "LV": "Latvia", 
+  "LB": "Lebanon", 
+  "LS": "Lesotho", 
+  "LR": "Liberia", 
+  "LY": "Libya", 
+  "LT": "Lithuania", 
+  "LU": "Luxembourg", 
+  "MK": "Macedonia", 
+  "MG": "Madagascar", 
+  "MW": "Malawi", 
+  "MV": "Maldives", 
+  "ML": "Mali", 
+  "MH": "Marshall Islands", 
+  "MQ": "Martinique", 
+  "MR": "Mauritania", 
+  "YT": "Mayotte", 
+  "MX": "Mexico", 
+  "MD": "Moldova", 
+  "MN": "Mongolia", 
+  "ME": "Montenegro", 
+  "MS": "Montserrat", 
+  "MA": "Morocco", 
+  "MZ": "Mozambique", 
+  "MM": "Myanmar", 
+  "NA": "Namibia", 
+  "NR": "Nauru", 
+  "NP": "Nepal", 
+  "NL": "Netherlands", 
+  "BQBO": "Netherlands", 
+  "NI": "Nicaragua", 
+  "NE": "Niger", 
+  "NG": "Nigeria", 
+  "PK": "Pakistan", 
+  "PW": "Palau", 
+  "PS": "Palestine", 
+  "PA": "Panama", 
+  "PY": "Paraguay", 
+  "PE": "Peru", 
+  "PL": "Poland", 
+  "PT": "Portugal", 
+  "QA": "Qatar", 
+  "CG": "Republic of Congo", 
+  "KR": "Republic of Korea", 
+  "RE": "Reunion", 
+  "RO": "Romania", 
+  "RW": "Rwanda", 
+  "BQSA": "Saba (Netherlands)", 
+  "LC": "Saint Lucia", 
+  "VC": "Saint Vincent and the Grenadines", 
+  "BL": "Saint-Barthélemy", 
+  "MF": "Saint-Martin", 
+  "SA": "Saudi Arabia", 
+  "SN": "Senegal", 
+  "RS": "Serbia", 
+  "SL": "Sierra Leone", 
+  "SX": "Sint Maarten", 
+  "SK": "Slovakia", 
+  "SI": "Slovenia", 
+  "SO": "Somalia", 
+  "ZA": "South Africa", 
+  "SS": "South Sudan", 
+  "ES": "Spain", 
+  "LK": "Sri Lanka", 
+  "BQSE": "St. Eustatius (Netherlands)", 
+  "SD": "Sudan", 
+  "SR": "Suriname", 
+  "SZ": "Swaziland", 
+  "SE": "Sweden", 
+  "CH": "Switzerland", 
+  "SY": "Syria", 
+  "TW": "Taiwan", 
+  "TJ": "Tajikistan", 
+  "TZ": "Tanzania", 
+  "TH": "Thailand", 
+  "GM": "The Gambia", 
+  "TL": "Timor-Leste", 
+  "TG": "Togo", 
+  "TN": "Tunisia", 
+  "TM": "Turkmenistan", 
+  "TV": "Tuvalu", 
+  "UG": "Uganda", 
+  "UA": "Ukraine", 
+  "AE": "United Arab Emirates", 
+  "UY": "Uruguay", 
+  "UZ": "Uzbekistan", 
+  "VE": "Venezuela", 
+  "VN": "Vietnam", 
+  "EH": "Western Sahara", 
+  "YE": "Yemen", 
+  "ZM": "Zambia", 
+  "ZW": "Zimbabwe"
+        };
+
+        // Load SVG Map
+        function enableZoomAndPan() {
+    const svgElement = document.querySelector("#world-map-container svg");
+
+    if (!svgElement) {
+        console.error("SVG not found.");
+        return;
+    }
+
+    let isPanning = false;
+    let startX, startY;
+    let scale = 1;
+    let translateX = 0, translateY = 0;
+
+    const minScale = 0.5;
+    const maxScale = 5;
+
+    // Mouse Scroll Zoom
+    svgElement.addEventListener("wheel", function (event) {
+        event.preventDefault();
+
+        const scaleFactor = 0.1;
+        const direction = event.deltaY > 0 ? -1 : 1; // Zoom in or out
+
+        scale += scaleFactor * direction;
+        scale = Math.max(minScale, Math.min(maxScale, scale));
+
+        updateTransform();
+    });
+
+    // Mouse Drag Pan
+    svgElement.addEventListener("mousedown", function (event) {
+        isPanning = true;
+        startX = event.clientX - translateX;
+        startY = event.clientY - translateY;
+    });
+
+    window.addEventListener("mousemove", function (event) {
+        if (!isPanning) return;
+
+        translateX = event.clientX - startX;
+        translateY = event.clientY - startY;
+
+        updateTransform();
+    });
+
+    window.addEventListener("mouseup", function () {
+        isPanning = false;
+    });
+
+    function updateTransform() {
+        svgElement.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+        svgElement.style.transformOrigin = "center center";
+    }
+}
+
+// Show tooltip with country name on hover
+function enableCountryTooltip() {
+    const tooltip = document.createElement("div");
+    tooltip.style.position = "absolute";
+    tooltip.style.background = "white";
+    tooltip.style.padding = "5px 10px";
+    tooltip.style.borderRadius = "5px";
+    tooltip.style.boxShadow = "0px 0px 5px rgba(0,0,0,0.3)";
+    tooltip.style.fontSize = "14px";
+    tooltip.style.display = "none";
+    tooltip.style.pointerEvents = "none"; // Prevent interfering with cursor
+    document.body.appendChild(tooltip);
+
+    const countries = document.querySelectorAll("#world-map-container svg path");
+
+    countries.forEach(country => {
+        let countryId = country.id.toUpperCase();
+
+        if (countryId in countryMap) {
+            country.dataset.name = countryMap[countryId]; // Assign full country name
+        } else {
+            country.dataset.name = "Unknown Country";
+            console.warn(`No name mapping for: ${countryId}`);
+        }
+
+        country.addEventListener("mouseover", (event) => {
+            tooltip.innerText = country.dataset.name;
+            tooltip.style.display = "block";
+        });
+
+        country.addEventListener("mousemove", (event) => {
+            tooltip.style.left = event.pageX + 15 + "px";
+            tooltip.style.top = event.pageY + 10 + "px";
+        });
+
+        country.addEventListener("mouseout", () => {
+            tooltip.style.display = "none";
+        });
+    });
+}
+
+
+// Call this function after loading the map
+fetch("world.svg")
+    .then(response => response.text())
+    .then(svgContent => {
+        const container = document.getElementById("world-map-container");
+        container.innerHTML = svgContent;
+
+        const svgElement = container.querySelector("svg");
+        if (svgElement) {
+            svgElement.setAttribute("width", "100%");
+            svgElement.setAttribute("height", "100%");
+            svgElement.setAttribute("viewBox", "500 -70 1000 1000");
+            svgElement.setAttribute("preserveAspectRatio", "xMidYMid meet");
+        }
+
+        initializeMapInteractions();
+        startQuiz();
+        enableZoomAndPan(); // Enable zoom and pan
+        enableCountryTooltip(); // Enable tooltip for country names
+    })
+    .catch(error => console.error("Error loading SVG:", error));
+
+
+        function initializeMapInteractions() {
+            const countries = document.querySelectorAll("#world-map-container svg path");
+
+            countries.forEach(country => {
+                let countryId = country.id;
+                
+                if (countryId in countryMap) {
+                    country.dataset.name = countryMap[countryId]; // Assign full name
+                } else {
+                    console.warn(`Missing country mapping for: ${countryId}`);
+                }
+
+                country.classList.add("country");
+
+                country.addEventListener("click", () => {
+                    console.log("Clicked country:", country.dataset.name);
+                    document.getElementById("result").innerText = `You clicked: ${country.dataset.name}`;
+                    checkAnswer(country.dataset.name);
+                });
+
+                country.addEventListener("mouseover", () => country.style.fill = "orange");
+                country.addEventListener("mouseout", () => country.style.fill = "");
+            });
+        }
+
+        // Quiz Logic
+        const countryNames = Object.values(countryMap);
+let currentQuestion = "";
+
+function startQuiz() {
+    currentQuestion = countryNames[Math.floor(Math.random() * countryNames.length)];
+    document.getElementById("question").innerText = currentQuestion;
+}
+
+function checkAnswer(selectedCountry) {
+    const result = document.getElementById("result");
+
+    if (selectedCountry === currentQuestion) {
+        result.innerText = "✅ Correct!";
+        setTimeout(() => {
+            result.innerText = "";
+            startQuiz();
+        }, 2000);
+    } else {
+        result.innerText = "❌ Wrong, try again!";
+    }
+}
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Earth GeoGuessr Game</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/controls/OrbitControls.js"></script>
+    <style>
+     body { margin: 0; overflow: hidden; background: rgb(0, 0, 0); font-family: Arial, sans-serif; }
+        
+        #quiz {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 10px 10px 20px #bebebe00, -10px -10px 20px #ffffff00;
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            transition: all 0.3s ease-in-out;
+        }
+
+        #quiz:hover {
+            box-shadow: 5px 5px 10px #bebebe00, -5px -5px 10px #ffffff00;
+        }
+
+        #result {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        #hoverText {
+            position: absolute;
+            color: white;
+            background: rgba(15, 86, 134, 0.6);
+            padding: 5px;
+            border-radius: 5px;
+            display: none;
+        }
+        #mapContainer {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 300px;
+    height: 150px;
+    background: #fff;
+    border: 2px solid #000;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+#worldMap {
+    width: 100%;
+    height: 100%;
+    opacity: 0.8;
+}
+
+#mapOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+
+    </style>
+</head>
+<body>
+    <div id="quiz">
+        <p>Find the Country: <span id="question"></span></p>
+        <p id="result"></p>
+    </div>
+    <div id="hoverText"></div>
+    <div id="mapContainer">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg" id="worldMap" />
+        <canvas id="mapOverlay"></canvas>
+    </div>
+    
+
+    <script>
+        // Scene, Camera, Renderer
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.PointLight(0xffffff, 3, 100);
+        sunLight.position.set(30, 0, -40);
+        scene.add(sunLight);
+
+        // Load Textures
+        const textureLoader = new THREE.TextureLoader();
+        const earthTexture = textureLoader.load('https://threejs.org/examples/textures/land_ocean_ice_cloud_2048.jpg');
+        const borderTexture = textureLoader.load('https://raw.githubusercontent.com/makeyourownworld/earth-atlas/main/textures/earth_borders.png');
+        const starsTexture = textureLoader.load('https://threejs.org/examples/textures/galaxy_starfield.png');
+        const sunTexture = textureLoader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQc1RIfgzTYCE22zaQt7Tvkpc4_3I5ZxgQ0fw&s');
+        // Load Moon Texture
+        const moonTexture = textureLoader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSyjVmlqdeHeSeZDKiz7WS5DsXV_WxgukII-Q&s');
+
+
+        // Earth and Borders
+        const earthGeometry = new THREE.SphereGeometry(3, 64, 64);
+        const earthMaterial = new THREE.MeshStandardMaterial({ map: earthTexture });
+        const borderMaterial = new THREE.MeshBasicMaterial({ map: borderTexture, transparent: true });
+       
+
+        const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+        const earthBorders = new THREE.Mesh(earthGeometry, borderMaterial);
+
+        scene.add(earth);
+        scene.add(earthBorders);
+
+        // Create Moon
+        const moonGeometry = new THREE.SphereGeometry(0.5, 32, 32); // Smaller sphere
+        const moonMaterial = new THREE.MeshStandardMaterial({ map: moonTexture });
+        const moon = new THREE.Mesh(moonGeometry, moonMaterial);
+        scene.add(moon);
+
+        // Moon Orbit Variables
+        const moonOrbitRadius = 7; // Distance from Earth
+        let moonAngle = 0;
+        const moonLight = new THREE.PointLight(0xffffff, 1, 10);
+moon.add(moonLight);
+        // Stars Background
+        const starsGeometry = new THREE.SphereGeometry(50, 64, 64);
+        const starsMaterial = new THREE.MeshBasicMaterial({ map: starsTexture, side: THREE.BackSide });
+        const stars = new THREE.Mesh(starsGeometry, starsMaterial);
+        scene.add(stars);
+
+        // Sun (Distant Light Source)
+        const sunGeometry = new THREE.SphereGeometry(5, 32, 32);
+        const sunMaterial = new THREE.MeshBasicMaterial({  map: sunTexture });
+        const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+        sun.position.set(30, 0, -40);
+        scene.add(sun);
+        
+
+        // Camera and Controls
+        camera.position.z = 8;
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        // Country Data
+        const markers = [
+        { name: "USA", lat: 38.9, lon: -77.0 }, { name: "France", lat: 48.8, lon: 2.3 },
+            { name: "Japan", lat: 35.6, lon: 139.7 }, { name: "Brazil", lat: -15.8, lon: -47.9 },
+            { name: "UK", lat: 51.5, lon: -0.1 }, { name: "Germany", lat: 52.5, lon: 13.4 },
+            { name: "India", lat: 28.6, lon: 77.2 }, { name: "China", lat: 39.9, lon: 116.4 },
+            { name: "Russia", lat: 55.8, lon: 37.6 }, { name: "Canada", lat: 45.4, lon: -75.7 },
+            { name: "Australia", lat: -35.3, lon: 149.1 }, { name: "Mexico", lat: 19.4, lon: -99.1 },
+            { name: "South Korea", lat: 37.5, lon: 127.0 }, { name: "South Africa", lat: -25.7, lon: 28.2 },
+            { name: "Italy", lat: 41.9, lon: 12.5 }, { name: "Spain", lat: 40.4, lon: -3.7 },
+            { name: "Argentina", lat: -34.6, lon: -58.4 }, { name: "Saudi Arabia", lat: 24.7, lon: 46.7 },
+            { name: "Turkey", lat: 39.9, lon: 32.9 }, { name: "Indonesia", lat: -6.2, lon: 106.8 },
+            { name: "Egypt", lat: 30.0, lon: 31.2 }, { name: "Sweden", lat: 59.3, lon: 18.1 },
+            { name: "Norway", lat: 59.9, lon: 10.7 }, { name: "Netherlands", lat: 52.4, lon: 4.9 },
+            { name: "Poland", lat: 52.2, lon: 21.0 }, { name: "Colombia", lat: 4.7, lon: -74.1 },
+            { name: "Thailand", lat: 13.7, lon: 100.5 }, { name: "Vietnam", lat: 21.0, lon: 105.8 },
+            { name: "Pakistan", lat: 33.7, lon: 73.1 }, { name: "Philippines", lat: 14.6, lon: 120.9 },
+            { name: "Malaysia", lat: 3.1, lon: 101.7 }, { name: "Ukraine", lat: 50.4, lon: 30.5 },
+            { name: "Greece", lat: 37.9, lon: 23.7 }, { name: "Portugal", lat: 38.7, lon: -9.1 },
+            { name: "Chile", lat: -33.4, lon: -70.6 }, { name: "Peru", lat: -12.0, lon: -77.0 },
+            { name: "Romania", lat: 44.4, lon: 26.1 }, { name: "New Zealand", lat: -41.3, lon: 174.8 },
+            { name: "Switzerland", lat: 46.9, lon: 7.5 }, { name: "Belgium", lat: 50.9, lon: 4.3 },
+            { name: "Czechia", lat: 50.1, lon: 14.4 }, { name: "Bangladesh", lat: 23.8, lon: 90.4 },
+            { name: "Finland", lat: 60.1, lon: 24.9 }, { name: "Hungary", lat: 47.5, lon: 19.0 }
+        ];
+
+        let currentQuestion = markers[Math.floor(Math.random() * markers.length)];
+        document.getElementById("question").innerText = currentQuestion.name;
+
+        function latLonToVector3(lat, lon, radius) {
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lon + 180) * (Math.PI / 180);
+            return new THREE.Vector3(
+                -radius * Math.sin(phi) * Math.cos(theta),
+                radius * Math.cos(phi),
+                radius * Math.sin(phi) * Math.sin(theta)
+            );
+        }
+        const mapCanvas = document.getElementById("mapOverlay");
+const mapCtx = mapCanvas.getContext("2d");
+const mapContainer = document.getElementById("mapContainer");
+
+mapCanvas.width = mapContainer.clientWidth;
+mapCanvas.height = mapContainer.clientHeight;
+
+// Example country locations (scaled for small map)
+const countryPositions = {
+    "USA": { x: 70, y: 50 },
+    "France": { x: 150, y: 60 },
+    "Japan": { x: 250, y: 70 },
+    "Brazil": { x: 120, y: 100 },
+};
+
+function getCountryFromClick(x, y) {
+    for (let country in countryPositions) {
+        let pos = countryPositions[country];
+        let dist = Math.sqrt((pos.x - x) ** 2 + (pos.y - y) ** 2);
+        if (dist < 10) return country;
+    }
+    return null;
+}
+
+mapCanvas.addEventListener("click", (event) => {
+    const rect = mapCanvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    let selectedCountry = getCountryFromClick(x, y);
+    if (selectedCountry) {
+        checkAnswer(selectedCountry);
+        highlightCountry(selectedCountry);
+    }
+});
+
+function highlightCountry(country) {
+    if (countryPositions[country]) {
+        let pos = countryPositions[country];
+        mapCtx.fillStyle = "rgba(255, 0, 0, 0.5)";
+        mapCtx.beginPath();
+        mapCtx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
+        mapCtx.fill();
+    }
+}
+
+
+        const markerMeshes = markers.map(marker => {
+            const markerGeometry = new THREE.SphereGeometry(0.07, 12, 12);
+            const markerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            const markerMesh = new THREE.Mesh(markerGeometry, markerMaterial);
+            markerMesh.position.copy(latLonToVector3(marker.lat, marker.lon, 3.05));
+            markerMesh.name = marker.name;
+            earth.add(markerMesh);
+            return markerMesh;
+        
+        });
+
+        function updateQuestion() {
+            document.getElementById("quiz").style.transform = "scale(1.1)";
+            setTimeout(() => {
+                document.getElementById("quiz").style.transform = "scale(1)";
+            }, 200);
+        }
+
+   
+        function checkAnswer(answer) {
+            const result = document.getElementById("result");
+            result.innerText = (answer === currentQuestion.name) ? "✅ Correct!" : "❌ Wrong, try again!";
+            if (answer === currentQuestion.name) {
+                setTimeout(() => {
+                    currentQuestion = markers[Math.floor(Math.random() * markers.length)];
+                    document.getElementById("question").innerText = currentQuestion.name;
+                    result.innerText = "";
+                    updateQuestion();
+                }, 2000);
+            }
+        }
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        window.addEventListener("mousemove", (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(markerMeshes);
+            const hoverText = document.getElementById("hoverText");
+            markerMeshes.forEach(mesh => mesh.material.color.set(0xff0000));
+            if (intersects.length > 0) {
+                hoverText.style.display = "block";
+                hoverText.innerText = intersects[0].object.name;
+                hoverText.style.left = `${event.clientX + 10}px`;
+                hoverText.style.top = `${event.clientY + 10}px`;
+                intersects[0].object.material.color.set(0x00ff00);
+            } else hoverText.style.display = "none";
+        });
+
+        window.addEventListener("click", () => {
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(markerMeshes);
+            if (intersects.length > 0) {
+                checkAnswer(intersects[0].object.name);
+            }
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            earth.rotation.y += 0.002;
+            earthBorders.rotation.y += 0.002;
+            stars.rotation.y += 0.0005;
+             // Moon Rotation & Orbit
+    moonAngle += 0.005; // Speed of orbit
+    moon.position.x = Math.cos(moonAngle) * moonOrbitRadius;
+    moon.position.z = Math.sin(moonAngle) * moonOrbitRadius;
+    moon.position.y = 1.5; // Slight tilt above Earth
+
+   
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>

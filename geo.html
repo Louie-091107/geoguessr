@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D World Map</title>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; }
+        svg { width: 80vw; height: 80vh; border: 1px solid black; }
+        path { fill: lightgray; stroke: black; cursor: pointer; transition: fill 0.3s; }
+        path:hover { fill: lightblue; }
+    </style>
+</head>
+<body>
+    <h2>Click on a Country</h2>
+    <svg id="world-map" viewBox="0 0 1000 500">
+        <path id="usa" d="M100 100 L150 100 L150 150 L100 150 Z" fill="lightgray" stroke="black"/>
+        <path id="france" d="M200 200 L250 200 L250 250 L200 250 Z" fill="lightgray" stroke="black"/>
+        <path id="japan" d="M300 300 L350 300 L350 350 L300 350 Z" fill="lightgray" stroke="black"/>
+    </svg>
+
+    <p id="result"></p>
+
+    <script>
+        function checkAnswer(answer) {
+            document.getElementById("result").innerText = 
+                answer === "FRANCE" ? "✅ Correct!" : "❌ Try Again!";
+        }
+
+        document.querySelectorAll("path").forEach(country => {
+            country.addEventListener("click", () => {
+                checkAnswer(country.id.toUpperCase());
+            });
+        });
+    </script>
+</body>
+</html>
