@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive World Map Quiz</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: rgb(0, 17, 255); font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        #world-map-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        
+        #earth-overlay {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: url('https://upload.wikimedia.org/wikipedia/commons/4/4a/World_map_with_four_colours.svg');
+            background-size: cover;
+            opacity: 2;
+            z-index: -1;
+        }
+
+        svg {
+            max-width: 100%;
+            max-height: 100%;
+            cursor: grab;
+            position: relative;
+        }
+
+        .country { fill: rgba(195, 195, 195, 0); stroke: black; cursor: pointer; transition: fill 0.3s; }
+        .country:hover { fill: orange; }
+        
+        #quiz { position: absolute; top: 20px; left: 20px; background: white; padding: 15px; border-radius: 10px; }
+        #result { font-weight: bold; }
+        #tooltip {
+            position: absolute;
+            background: white;
+            padding: 5px;
+            border-radius: 5px;
+            font-size: 14px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="world-map-container">
+        <div id="earth-overlay"></div>
+    </div>
+    <div id="quiz">
+        <p>Find the Country: <span id="question"></span></p>
+        <p id="result"></p>
+    </div>
+    <div id="tooltip"></div>
+    <script>
+        const countryMap = {
+            "AF": "Afghanistan", "AL": "Albania", "DZ": "Algeria", "AD": "Andorra", "AO": "Angola",
+            "AR": "Argentina", "AM": "Armenia", "AU": "Australia", "AT": "Austria", "AZ": "Azerbaijan",
+            "BH": "Bahrain", "BD": "Bangladesh", "BY": "Belarus", "BE": "Belgium", "BZ": "Belize",
+            "BJ": "Benin", "BT": "Bhutan", "BO": "Bolivia", "BA": "Bosnia and Herzegovina",
+            "BW": "Botswana", "BR": "Brazil", "BN": "Brunei", "BG": "Bulgaria", "BF": "Burkina Faso",
+            "BI": "Burundi", "KH": "Cambodia", "CM": "Cameroon", "CA": "Canada", "CF": "Central African Republic",
+            "TD": "Chad", "CL": "Chile", "CN": "China", "CO": "Colombia", "CG": "Congo",
+            "CR": "Costa Rica", "HR": "Croatia", "CU": "Cuba", "CY": "Cyprus", "CZ": "Czech Republic",
+            "DK": "Denmark", "DJ": "Djibouti", "DO": "Dominican Republic", "EC": "Ecuador", "EG": "Egypt",
+            "SV": "El Salvador", "EE": "Estonia", "ET": "Ethiopia", "FI": "Finland", "FR": "France",
+            "GE": "Georgia", "DE": "Germany", "GH": "Ghana", "GR": "Greece", "GT": "Guatemala",
+            "HT": "Haiti", "HN": "Honduras", "HU": "Hungary", "IS": "Iceland", "IN": "India",
+            "ID": "Indonesia", "IR": "Iran", "IQ": "Iraq", "IE": "Ireland", "IL": "Israel",
+            "IT": "Italy", "JP": "Japan", "JO": "Jordan", "KZ": "Kazakhstan", "KE": "Kenya",
+            "KP": "North Korea", "KR": "South Korea", "KW": "Kuwait", "KG": "Kyrgyzstan", "LA": "Laos",
+            "LV": "Latvia", "LB": "Lebanon", "LS": "Lesotho", "LT": "Lithuania", "LU": "Luxembourg",
+            "MG": "Madagascar", "MY": "Malaysia", "MX": "Mexico", "MN": "Mongolia", "ME": "Montenegro",
+            "MA": "Morocco", "MZ": "Mozambique", "MM": "Myanmar", "NA": "Namibia", "NP": "Nepal",
+            "NL": "Netherlands", "NZ": "New Zealand", "NI": "Nicaragua", "NE": "Niger", "NG": "Nigeria",
+            "NO": "Norway", "OM": "Oman", "PK": "Pakistan", "PA": "Panama", "PY": "Paraguay",
+            "PE": "Peru", "PH": "Philippines", "PL": "Poland", "PT": "Portugal", "QA": "Qatar",
+            "RO": "Romania", "RU": "Russia", "SA": "Saudi Arabia", "SN": "Senegal", "RS": "Serbia",
+            "SG": "Singapore", "SK": "Slovakia", "SI": "Slovenia", "ZA": "South Africa", "ES": "Spain",
+            "LK": "Sri Lanka", "SE": "Sweden", "CH": "Switzerland", "TH": "Thailand", "TN": "Tunisia",
+            "TR": "Turkey", "UA": "Ukraine", "AE": "United Arab Emirates", "GB": "United Kingdom",
+            "US": "United States", "UY": "Uruguay", "UZ": "Uzbekistan", "VE": "Venezuela", "VN": "Vietnam",
+            "ZM": "Zambia", "ZW": "Zimbabwe"
+        };
+
+        fetch("world.svg")
+            .then(response => response.text())
+            .then(svgContent => {
+                document.getElementById("world-map-container").innerHTML += svgContent;
+                initializeMapInteractions();
+                startQuiz();
+            })
+            .catch(error => console.error("Error loading SVG:", error));
+
+        function initializeMapInteractions() {
+            const tooltip = document.getElementById("tooltip");
+            document.querySelectorAll("#world-map-container svg path").forEach(country => {
+                let countryId = country.id.trim().toUpperCase();
+                country.dataset.name = countryMap[countryId] || countryId;
+                country.classList.add("country");
+            });
+        }
+    </script>
+</body>
+</html>
